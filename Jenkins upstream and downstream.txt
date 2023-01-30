@@ -1,0 +1,36 @@
+Jenkins- an open source automation server which enables developers around the world to reliably build, test, and deploy their software.
+
+How to setup Delivery Pipeline plugin in Jenkins
+Jenkins upstream and downstream jobs
+
+step1. Launch an EC2 intsance and Install Jenkins.
+step2. Go to Jenkins dashboard with its public ip and Install all the necessary plugins.
+step3. Creating sample jobs for chaining, upstream and downstream.
+       Creating free style sample build, test, deploy jobs.
+
+       for sample build job:
+       in configure build section choose execute shell and add commands.
+       Apply and save run the job.
+
+       for test job:
+       in configure build section choose execute shell and add commands.
+       go to build triggers in that choose build after other projets are built.
+       put the sample build job name so that it will become upstream and test becomes downstream. 
+       it will become a chain job once we configure build after other projets are built. 
+       now after sample build job it automatically starts building the test job as we did chaining.
+
+       for Deploy job:
+       in configure build section choose execute shell and add commands.
+       go to build triggers in that choose build after other projets are built.
+       put the test job name so that it will become upstream and deploy becomes downstream. 
+       it will become a chain job once we configure build after other projets are built. 
+       now after test job it automatically starts building the deploy job as we did chaining.
+
+       when we run the build job we can see that after build test runs and finally deploys by chaining.
+
+step4. Install  Delivery Pipeline plugin in Jenkins dashboard.
+step5. Add  Delivery Pipeline view for perfect visulazitation of upstream and downstream Jenkins jobs.
+step6. In a pipeline component add inital jobs (build) from this all jobs will run and we can see the Pipeline view.
+       
+ 
+
