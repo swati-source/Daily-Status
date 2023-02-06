@@ -1,0 +1,64 @@
+---
+- hosts: server
+  tasks:
+    - name: Setting up the Security Group for new instance
+      ec2_group:
+          name: Ansible_Security_Group_AWS
+          description: Allowing Traffic on port 22 and 80
+          region: ap-southeast-1
+          rules:
+           - proto: tcp
+             from_port: 80
+             to_port: 80
+             cidr_ip: 0.0.0.0/0
+
+           - proto: tcp
+             from_port: 22
+             to_port: 22
+             cidr_ip: 0.0.0.0/0
+
+           - proto: icmp
+             from_port: -1
+             to_port: -1
+             cidr_ip: 0.0.0.0/0
+          rules_egress:
+           - proto: all
+             cidr_ip: 0.0.0.0/0
+          vpc_id: vpc-d8826ebd
+
+    - name: Provision EC2 instance
+      ec2:
+         key_name: AWS-Ansible
+         region: ap-southeast-1
+         instance_type: t2.micro
+         image: ami-01a4f99c4ac11b03c
+         wait: yes
+         count: 1
+         instance_tags:
+            Name: AWS-Ansible
+         assign_public_ip: yes
+         group: Ansible_Security_Group_AWS
+      register: ec2
+---------------------------------------------------------------------------------------------
+---
+- hosts: server
+  gather_facts: false
+  tasks:
+    - name: Stop EC2 instance
+      ec2:
+         instance_ids: i-0a405da62b8bf018a
+         region: ap-southeast-1
+         state: stopped
+         wait: True
+         vpc_subnet_id: subnet-18e7fa93
+         assign_public_ip: yes
+-----------------------------------------------------------------------------------------------
+---
+- hosts: server
+  gather_facts: false
+  tasks:
+    - name: Terminate EC2 instance
+      ec2:
+         instance_ids: i-0a405da62c8bf810a
+         region: ap-southeast-1
+         state: absent
