@@ -1,0 +1,91 @@
+name: Governance Checks (Branch + Commit Rules)
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  validate-governance:
+    name: Validate Branch Name & Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------ BRANCH NAME CHECK ------------
+      - name: Get Branch Name
+        id: get_branch
+        run: |
+          echo "GITHUB_REF: $GITHUB_REF"
+          echo "GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-''}"
+          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
+
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "Branch detected: $BRANCH_NAME"
+
+      - name: Validate Branch Name Format
+        run: |
+          BRANCH="${{ steps.get_branch.outputs.branch_name }}"
+
+          if [[ ! "$BRANCH" =~ ^CONVERSE-[0-9]+/[a-zA-Z0-9._-]+$ ]]; then
+            echo "❌ ERROR: Branch name must follow pattern:"
+            echo "   CONVERSE-<JIRA_NUMBER>/<description>"
+            echo "Example:"
+            echo "   CONVERSE-8274/connectivity-bridge-mcp"
+            exit 1
+          fi
+
+          echo "✅ Branch name is valid."
+
+      # ------------ COMMIT MESSAGE CHECK --------------
+      - name: Get Commit Messages
+        id: get_commits
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            COMMITS=$(git log --format=%s "$BASE..$HEAD")
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            COMMITS=$(git log --format=%s "$BEFORE..$AFTER")
+          fi
+
+          echo "commit_messages<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Validate Commit Messages
+        run: |
+          regex="^CONVERSE-[0-9]+[[:space:]]+"
+          failed=0
+
+          while IFS= read -r msg; do
+            [[ -z "$msg" ]] && continue
+            if [[ ! "$msg" =~ $regex ]]; then
+              echo "❌ Invalid commit message: $msg"
+              failed=1
+            else
+              echo "✔ Valid commit: $msg"
+            fi
+          done <<< "${{ steps.get_commits.outputs.commit_messages }}"
+
+          if [[ $failed -ne 0 ]]; then
+            echo ""
+            echo "❌ Commit messages must start with:"
+            echo "   CONVERSE-<JIRA_NUMBER> <message>"
+            exit 1
+          fi
+
+          echo "✅ All commit messages valid."
