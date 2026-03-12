@@ -61,4 +61,5 @@
       ec2:
          instance_ids: i-0a405da62c8bf810a
          region: ap-southeast-1
-         state: absent
+
+         state: present
